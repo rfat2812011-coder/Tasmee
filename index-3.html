@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة المتابعة القرآنية الذكية</title>
+    <!-- المانيفست المدمج لدعم ميزة التثبيت PWA كـ تطبيق مستقل -->
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogItmF2YbYtdipINin2YTYqtiz2YXZiti5INin2YTZgtix2KLZhtmKIiwgInNob3J0X25hbWUiOiAi2KrYs9mF2YrYuSIsICJzdGFydF91cmwiOiAiLiIsICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjRmNmY5IiwgInRoZW1lX2NvbG9yIjogIiMwYTU4Y2EifQ==">
+    <style>
+        :root {
+            --bg-body: #f4f6f9;
+            --bg-card: #ffffff;
+            --text-main: #212529;
+            --border-color: #dee2e6;
+            --table-th: #e7f1ff;
+            --bg-input: #fafafa;
+            --bg-podium: #fdf6e2;
+            --border-podium: #f3e5be;
+            
+            --primary: #0a58ca;
+            --primary-light: #e7f1ff;
+            --secondary: #6c757d;
+            --success: #198754;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --dark: #212529;
+            --radius: 12px;
+            --shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-body: #121212;
+                --bg-card: #1e1e1e;
+                --text-main: #e0e0e0;
+                --border-color: #333333;
+                --table-th: #1a2535;
+                --bg-input: #2a2a2a;
+                --bg-podium: #2c2514;
+                --border-podium: #5d4f2a;
+                --primary: #3b82f6;
+                --primary-light: #1e293b;
+            }
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin:0; padding:0; }
+        body { background: var(--bg-body); color: var(--text-main); padding-bottom: 30px; transition: background 0.3s, color 0.3s; }
+        
+        .welcome-screen { max-width: 500px; margin: 40px auto; padding: 0 15px; text-align: center; }
+        .welcome-card { background: var(--bg-card); border-radius: var(--radius); padding: 35px 25px; box-shadow: var(--shadow); border-top: 5px solid var(--primary); }
+        .welcome-card h1 { font-size: 1.8rem; margin-bottom: 10px; color: var(--primary); }
+        .welcome-card p { font-size: 0.95rem; color: var(--secondary); margin-bottom: 25px; }
+        .choice-btn { width: 100%; padding: 15px; margin-bottom: 15px; border: 2px solid var(--border-color); border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--bg-input); color: var(--text-main); transition: 0.2s; }
+        .choice-btn:hover { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+
+        /* ===== شريط التثبيت العائم الجديد: رفيع وواضح وثابت فوق الصفحة ===== */
+        #install-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: linear-gradient(90deg, var(--primary), #084298);
+            color: #fff;
+            padding: 8px 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            font-size: 0.85rem;
+            transform: translateY(-100%);
+            transition: transform 0.35s ease;
+        }
+        #install-banner.show {
+            display: flex;
+            transform: translateY(0);
+        }
+        #install-banner .ib-text {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #install-banner .ib-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        #install-banner button { border: none; cursor: pointer; font-weight: bold; border-radius: 20px; }
+        #btn-pwa-install {
+            background: var(--warning);
+            color: #212529;
+            padding: 6px 14px;
+            font-size: 0.8rem;
+        }
+        #btn-pwa-dismiss {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            padding: 6px 8px;
+            font-size: 0.85rem;
+            line-height: 1;
+        }
+        /* مساحة احتياطية فوق الصفحة عشان الشريط ما يغطي المحتوى */
+        body.has-install-banner { padding-top: 42px; }
+
+        .app-section { display: none; max-width: 750px; margin: 20px auto; padding: 0 15px; }
+        header { background: var(--dark); color: white; padding: 20px; text-align: center; border-radius: var(--radius); margin-bottom: 20px; box-shadow: var(--shadow); position: relative; }
+        .back-home-btn { position: absolute; right: 15px; top: 22px; background: rgba(255,255,255,0.1); color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
+        .back-home-btn:hover { background: var(--danger); }
+
+        .card { background: var(--bg-card); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color); }
+        .card h2 { font-size: 1.2rem; margin-bottom: 15px; color: var(--primary); border-bottom: 2px solid var(--border-color); padding-bottom: 8px; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 4px; font-weight: bold; font-size: 0.85rem; }
+        .form-control { width: 100%; padding: 10px; border: 1.5px solid var(--border-color); border-radius: 6px; font-size: 0.95rem; background: var(--bg-input); color: var(--text-main); }
+        .form-control:focus { outline: none; border-color: var(--primary); }
+        .row { display: flex; gap: 10px; margin-bottom: 5px; }
+        .col { flex: 1; }
+        .btn { width: 100%; padding: 11px; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; color: white; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-primary { background: #0d6efd; }
+        .btn-success { background: var(--success); }
+        
+        table { width: 100%; border-collapse: collapse; text-align: right; font-size: 0.9rem; margin-top: 10px; color: var(--text-main); }
+        th, td { padding: 10px; border-bottom: 1px solid var(--border-color); }
+        th { background: var(--table-th); color: var(--primary); font-weight: bold; }
+        .badge { background: var(--success); color: white; padding: 3px 8px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; display: inline-block; }
+        .badge-podium { background: var(--warning); color: #212529; }
+        .sm-btn { padding: 5px 8px; font-size: 0.75rem; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; margin-left: 3px; }
+        .sm-btn-view { background: var(--table-th); color: var(--primary); }
+        .sm-btn-del { background: #fbe7e9; color: var(--danger); }
+        @media (prefers-color-scheme: dark) { .sm-btn-del { background: #3d1c1e; color: #ff6b6b; } }
+
+        .tab-buttons { display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); }
+        .tab-btn { background: none; border: none; padding: 8px 12px; cursor: pointer; font-weight: bold; color: var(--secondary); font-size: 0.9rem; }
+        .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; padding: 15px; }
+        .modal-content { background: var(--bg-card); color: var(--text-main); width: 100%; max-width: 600px; border-radius: var(--radius); max-height: 90vh; overflow-y: auto; padding: 20px; border: 1px solid var(--border-color); }
+        .podium-box { background: var(--bg-podium); border: 1px solid var(--border-podium); padding: 12px; border-radius: 8px; margin-bottom: 15px; color: var(--text-main); }
+        .footer-credit { text-align: center; font-size: 0.8rem; color: var(--secondary); margin-top: 30px; opacity: 0.7; }
+        
+        .toggle-box { background: var(--bg-input); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- شريط التثبيت العائم -->
+    <div id="install-banner">
+        <span class="ib-text">📲 ثبّت التطبيق على شاشتك الرئيسية</span>
+        <div class="ib-actions">
+            <button id="btn-pwa-install">تثبيت</button>
+            <button id="btn-pwa-dismiss" aria-label="إغلاق">&times;</button>
+        </div>
+    </div>
+
+    <!-- 0️⃣ شاشة الترحيب الرئيسية واختيار طبيعة الحساب -->
+    <div id="screen-welcome" class="welcome-screen">
+        <div class="welcome-card">
+            <h1>📖 منصة التسميع القرآني</h1>
+            <p>اختر نوع الحساب لبدء إدارة وتتبع الورد القرآني</p>
+            
+            <button class="choice-btn" onclick="showSection('section-teacher')">
+                <span>👨‍🏫 أنا معلم (لدي حلقات وطلاب)</span>
+            </button>
+            
+            <button class="choice-btn" onclick="showSection('section-independent-student')">
+                <span>🎯 أنا طالب حر (أتابع وردي بنفسي)</span>
+            </button>
+            <p style="font-size: 0.75rem; margin-top:10px;">برمجة وتطوير: عشوائيات مبرمجين / رفعت طباخ ©</p>
+            <p style="font-size: 0.75rem; margin-top:4px;">📞 للتواصل: <a href="tel:+963946132154" style="color:var(--primary); text-decoration:none; font-weight:bold;">+963946132154</a></p>
+        </div>
+    </div>
+
+    <!-- 1️⃣ قســم المعلــم -->
+    <div id="section-teacher" class="app-section">
+        <header>
+            <button class="back-home-btn" onclick="showSection('screen-welcome')">⬅️ خروج</button>
+            <h2 style="color:var(--warning);">⚙️ لوحة المعلم وإدارة الحلقات</h2>
+            <p style="font-size:0.85rem; opacity:0.8;">رصد الدرجات المتقدم، كشوفات دورية وقوائم الصدارة الفخرية</p>
+        </header>
+
+        <!-- كارت تسجيل طالب جديد -->
+        <div class="card">
+            <h2>➕ تسجيل طالب جديد في الحلقة</h2>
+            <form id="teacher-add-student-form">
+                <div class="form-group">
+                    <label>اسم الطالب الثلاثي:</label>
+                    <input type="text" id="t-student-name" class="form-control" required placeholder="مثال: يحيى أحمد العمر">
+                </div>
+                <div class="row">
+                    <div class="col form-group">
+                        <label>رقم هاتف التواصل:</label>
+                        <input type="tel" id="t-student-phone" class="form-control" required placeholder="05xxxxxxxx">
+                    </div>
+                    <div class="col form-group">
+                        <label>اسم الحلقة المسجل بها:</label>
+                        <input type="text" id="t-student-group" class="form-control" required placeholder="مثال: حلقة عاصم">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">💾 إدراج في الحلقة</button>
+            </form>
+        </div>
+
+        <!-- السجل العام وقوائم الصدارة الدورية للمعلم -->
+        <div class="card">
+            <h2>👥 لوحة المتابعة والتقارير العامة</h2>
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchTeacherTab('t-all-tab', this)">كل الطلاب</button>
+                <button class="tab-btn" onclick="switchTeacherTab('t-week-tab', this)">📋 أسبوعي وصدارة</button>
+                <button class="tab-btn" onclick="switchTeacherTab('t-month-tab', this)">📅 شهري وصدارة</button>
+            </div>
+
+            <div id="t-all-tab" class="tab-panel active">
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr><th>الاسم</th><th>الحلقة</th><th>النقاط الكلية</th><th>الإجراءات</th></tr>
+                        </thead>
+                        <tbody id="teacher-master-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="t-week-tab" class="tab-panel">
+                <div class="podium-box">
+                    <h4>🏆 لوحة الشرف والصدارة الأسبوعية (الأعلى نقاطاً خلال 7 أيام):</h4>
+                    <div id="weekly-podium-list" style="margin-top:5px; font-weight:bold; color:var(--success); line-height: 1.6;"></div>
+                </div>
+                <h4 style="font-size:0.9rem; margin-top:10px; color:var(--primary);">📋 كشف حركة التسميع لهذا الأسبوع:</h4>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead><tr><th>التاريخ</th><th>الاسم</th><th>النوع</th><th>التفاصيل</th><th>الدرجة</th><th>النقاط</th></tr></thead>
+                        <tbody id="teacher-weekly-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="t-month-tab" class="tab-panel">
+                <div class="podium-box">
+                    <h4>🏆 لوحة الشرف والصدارة الشهرية (الأعلى نقاطاً خلال 30 يوماً):</h4>
+                    <div id="monthly-podium-list" style="margin-top:5px; font-weight:bold; color:var(--primary); line-height: 1.6;"></div>
+                </div>
+                <h4 style="font-size:0.9rem; margin-top:10px; color:var(--primary);">📅 كشف حركة التسميع لهذا الشهر:</h4>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead><tr><th>التاريخ</th><th>الاسم</th><th>النوع</th><th>التفاصيل</th><th>الدرجة</th><th>النقاط</th></tr></thead>
+                        <tbody id="teacher-monthly-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2️⃣ قســم الطالــب الحــر -->
+    <div id="section-independent-student" class="app-section">
+        <header style="background: linear-gradient(135deg, #198754, #146c43);">
+            <button class="back-home-btn" onclick="showSection('screen-welcome')">⬅️ خروج</button>
+            <h2>🎯 مفكرة الطالب المستقل اليومية</h2>
+            <p style="font-size:0.85rem; opacity:0.9;">سجل ورد تسميعك اليومي، راقب إنتاجيتك واجمع نقاط التميز الشخصية</p>
+        </header>
+
+        <div class="card">
+            <h2>📝 تسجيل وإضافة قيد تسميع جديد اليوم</h2>
+            <form id="ind-add-log-form">
+                <div class="row">
+                    <div class="col form-group">
+                        <label>من صفحة:</label>
+                        <input type="number" id="ind-from" class="form-control" required min="1">
+                    </div>
+                    <div class="col form-group">
+                        <label>إلى صفحة:</label>
+                        <input type="number" id="ind-to" class="form-control" required min="1">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>ملاحظة شخصية عن جودة الحفظ (اختياري):</label>
+                    <input type="text" id="ind-note" class="form-control" placeholder="مثال: مراجعة ممتازة لسورة البقرة">
+                </div>
+                <button type="submit" class="btn btn-success">➕ تدوين وحفظ في المفكرة</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:2px solid var(--border-color); padding-bottom:10px;">
+                <h2 style="border:none; margin:0;">📜 أرشيف الورد التراكمي الخاص بي</h2>
+                <div style="font-weight:bold;">رصيد نقاط التميز الكلي: <span class="badge" id="ind-total-points-badge" style="font-size:1rem;">0 ن</span></div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr><th>التاريخ</th><th>ورد التسميع</th><th>عدد الصفحات</th><th>النقاط المكتسبة</th><th>الملاحظات</th><th>إجراء</th></tr>
+                    </thead>
+                    <tbody id="ind-history-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- موديول المعلم المنبثق لإدارة الرصد المتقدم -->
+    <div id="teacher-profile-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--border-color); padding-bottom:10px; margin-bottom:15px;">
+                <h3 id="t-modal-title">إدارة الطالب</h3>
+                <button onclick="closeTeacherModal()" style="background:none; border:none; color:var(--text-main); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchModalTab('m-tab-eval', this)">📖 رصد تسميع مذكر</button>
+                <button class="tab-btn" onclick="switchModalTab('m-tab-reward', this)">🎁 مكافأة تميز</button>
+                <button class="tab-btn" onclick="switchModalTab('m-tab-history', this)">📜 تعديل وحذف القيود</button>
+            </div>
+
+            <!-- لوحة رصد درجات ونقاط الحلقة المتقدمة -->
+            <div id="m-tab-eval" class="tab-panel active">
+                <form id="t-modal-eval-form">
+                    <div class="row">
+                        <div class="col form-group">
+                            <label>وجهة ونوع التسميع:</label>
+                            <select id="t-eval-type" class="form-control" onchange="autoCalculatePoints()">
+                                <option value="new">حفظ جديد</option>
+                                <option value="review">مراجعة</option>
+                                <option value="sabr">سبر</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col form-group"><label>من صفحة:</label><input type="number" id="t-eval-from" class="form-control" required min="1" oninput="autoCalculatePoints()"></div>
+                        <div class="col form-group"><label>إلى صفحة:</label><input type="number" id="t-eval-to" class="form-control" required min="1" oninput="autoCalculatePoints()"></div>
+                    </div>
+
+                    <!-- نظام التقييم بالخصم والتنبيه -->
+                    <div class="toggle-box">
+                        <label style="font-weight: bold; cursor: pointer;">
+                            <input type="checkbox" id="t-eval-method-toggle" onchange="toggleEvalMethod()"> تفعيل نظام الحسم التلقائي (الردات والتنبيهات)
+                        </label>
+                    </div>
+
+                    <!-- أولاً: واجهة الحساب الحر اليدوي -->
+                    <div id="eval-method-manual">
+                        <div class="row">
+                            <div class="col form-group">
+                                <label>الدرجة الكاملة (مثلاً 10):</label>
+                                <input type="number" id="t-eval-score-max-manual" class="form-control" value="10" min="1">
+                            </div>
+                            <div class="col form-group">
+                                <label>علامة الطالب (مثلاً 9):</label>
+                                <input type="number" id="t-eval-score-student-manual" class="form-control" value="10" min="0">
+                            </div>
+                            <div class="col form-group">
+                                <label>النقاط الممنوحة لهذا الإنجاز:</label>
+                                <input type="number" id="t-eval-points-manual" class="form-control" value="10" min="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ثانياً: واجهة تخصيص الحسم التلقائي بالكامل -->
+                    <div id="eval-method-auto" style="display:none; background:rgba(0,0,0,0.02); padding:12px; border-radius:6px; margin-bottom:10px; border:1px solid var(--border-color);">
+                        <p style="font-size:0.8rem; color:var(--primary); font-weight:bold; margin-bottom:10px;">⚙️ الإعداد المخصص لنظام تقييم وحسم الدرجات الآلي:</p>
+                        
+                        <div class="row">
+                            <div class="col form-group"><label>الدرجة الكاملة من:</label><input type="number" id="t-eval-base-score" class="form-control" value="100" min="1" oninput="calculateAutoScore()"></div>
+                            <div class="col form-group"><label>قيمة الخصم للردة الواحدة:</label><input type="number" id="t-eval-deduct-rada" class="form-control" value="5" min="0" oninput="calculateAutoScore()"></div>
+                            <div class="col form-group"><label>قيمة الخصم للتنبيه الواحد:</label><input type="number" id="t-eval-deduct-tanbih" class="form-control" value="1" min="0" oninput="calculateAutoScore()"></div>
+                        </div>
+                        
+                        <hr style="border:0; border-top:1px dashed var(--border-color); margin:10px 0;">
+                        
+                        <div class="row">
+                            <div class="col form-group"><label>عدد الردات المسجلة:</label><input type="number" id="t-eval-radat" class="form-control" value="0" min="0" oninput="calculateAutoScore()"></div>
+                            <div class="col form-group"><label>عدد التنبيهات المسجلة:</label><input type="number" id="t-eval-tanbehat" class="form-control" value="0" min="0" oninput="calculateAutoScore()"></div>
+                        </div>
+                        
+                        <div class="row" style="margin-top:5px;">
+                            <div class="col form-group"><label>علامة الطالب الناتجة:</label><input type="number" id="t-eval-score-auto" class="form-control" readonly value="100" style="font-weight:bold; color:var(--danger);"></div>
+                            <div class="col form-group"><label>النقاط التلقائية المكتسبة (قابلة للتعديل):</label><input type="number" id="t-eval-points-auto" class="form-control" value="0" min="0" style="font-weight:bold; color:var(--success);"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group"><label>ملاحظات وتوجيه المعلم:</label><input type="text" id="t-eval-note" class="form-control" placeholder="قراءة ممتازة ومجودة"></div>
+                    <button type="submit" class="btn btn-primary">➕ رصد في السجل</button>
+                </form>
+            </div>
+
+            <!-- لوحة منح مكافأة تحفيزية إضافية -->
+            <div id="m-tab-reward" class="tab-panel">
+                <form id="t-modal-reward-form">
+                    <div class="form-group"><label>النقاط الاستثنائية:</label><input type="number" id="t-reward-points" class="form-control" required min="1"></div>
+                    <div class="form-group"><label>السبب والدافع للمكافأة:</label><input type="text" id="t-reward-note" class="form-control" required placeholder="التزام بالحضور المبكر وحسن الأدب"></div>
+                    <button type="submit" class="btn btn-primary" style="background:#b10dc9;">🎁 إعتماد ومنح المكافأة</button>
+                </form>
+            </div>
+
+            <!-- لوحة كشف التعديل والحذف للقيود الخاطئة -->
+            <div id="m-tab-history" class="tab-panel">
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead><tr><th>التفاصيل</th><th>الدرجة</th><th>النقاط</th><th>الإجراء الذكي</th></tr></thead>
+                        <tbody id="t-modal-history-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p class="footer-credit">جميع الحقوق محفوظة ومحمية لصالح عشوائيات مبرمجين / رفعت طباخ ©</p>
+
+    <script>
+        let t_students = JSON.parse(localStorage.getItem('t_students')) || [];
+        let t_logs = JSON.parse(localStorage.getItem('t_logs')) || [];
+        let ind_logs = JSON.parse(localStorage.getItem('ind_logs')) || [];
+        let activeStudentId = null;
+
+        function syncTeacherData() { localStorage.setItem('t_students', JSON.stringify(t_students)); localStorage.setItem('t_logs', JSON.stringify(t_logs)); }
+        function syncIndependentData() { localStorage.setItem('ind_logs', JSON.stringify(ind_logs)); }
+
+        function showSection(sectionId) {
+            document.getElementById('screen-welcome').style.display = 'none';
+            document.getElementById('section-teacher').style.display = 'none';
+            document.getElementById('section-independent-student').style.display = 'none';
+            document.getElementById(sectionId).style.display = 'block';
+            
+            if(sectionId === 'section-teacher') renderTeacherApp();
+            if(sectionId === 'section-independent-student') renderIndependentApp();
+        }
+
+        function toggleEvalMethod() {
+            const isAuto = document.getElementById('t-eval-method-toggle').checked;
+            document.getElementById('eval-method-manual').style.display = isAuto ? 'none' : 'block';
+            document.getElementById('eval-method-auto').style.display = isAuto ? 'block' : 'none';
+            if(isAuto) { autoCalculatePoints(); calculateAutoScore(); }
+        }
+
+        function autoCalculatePoints() {
+            const fromPage = parseInt(document.getElementById('t-eval-from').value) || 0;
+            const toPage = parseInt(document.getElementById('t-eval-to').value) || 0;
+            const type = document.getElementById('t-eval-type').value;
+
+            if(toPage >= fromPage && fromPage > 0) {
+                let pages = toPage - fromPage + 1;
+                let multiplier = type === 'new' ? 3 : (type === 'review' ? 2 : 4); 
+                document.getElementById('t-eval-points-auto').value = pages * multiplier;
+            }
+        }
+
+        function calculateAutoScore() {
+            const baseScore = parseInt(document.getElementById('t-eval-base-score').value) || 0;
+            const deductRada = parseInt(document.getElementById('t-eval-deduct-rada').value) || 0;
+            const deductTanbih = parseInt(document.getElementById('t-eval-deduct-tanbih').value) || 0;
+            
+            const radat = parseInt(document.getElementById('t-eval-radat').value) || 0;
+            const tanbehat = parseInt(document.getElementById('t-eval-tanbehat').value) || 0;
+            
+            let finalScore = baseScore - (radat * deductRada) - (tanbehat * deductTanbih);
+            document.getElementById('t-eval-score-auto').value = Math.max(0, finalScore);
+        }
+
+        /* ======================== محرك وعمليات لوحة تحكم المعلم ======================== */
+        function renderTeacherApp() {
+            const masterTbody = document.getElementById('teacher-master-tbody');
+            masterTbody.innerHTML = '';
+            
+            if(t_students.length === 0) {
+                masterTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--secondary); padding: 15px;">لا يوجد طلاب مسجلين بالحلقات حالياً.</td></tr>`;
+            } else {
+                t_students.forEach(st => {
+                    masterTbody.innerHTML += `
+                        <tr>
+                            <td><b>${st.name}</b></td>
+                            <td><span class="badge" style="background:var(--secondary);">${st.group}</span></td>
+                            <td><span class="badge">⭐ ${st.points || 0} ن</span></td>
+                            <td>
+                                <button class="sm-btn sm-btn-view" onclick="openTeacherModal(${st.id})">📂 إدارة ورصد</button>
+                                <button class="sm-btn sm-btn-del" onclick="deleteTeacherStudent(${st.id})">🗑️ حذف</button>
+                            </td>
+                        </tr>`;
+                });
+            }
+
+            const now = new Date();
+            const oneWeek = new Date(now.getTime() - 7*24*60*60*1000);
+            const oneMonth = new Date(now.getTime() - 30*24*60*60*1000);
+
+            const weekTbody = document.getElementById('teacher-weekly-tbody');
+            const monthTbody = document.getElementById('teacher-monthly-tbody');
+            weekTbody.innerHTML = ''; monthTbody.innerHTML = '';
+
+            let weekPointsMap = {};
+            let monthPointsMap = {};
+            t_students.forEach(s => { weekPointsMap[s.id] = 0; monthPointsMap[s.id] = 0; });
+
+            let sortedLogs = [...t_logs].sort((a,b) => b.id - a.id);
+            sortedLogs.forEach(l => {
+                const st = t_students.find(s => s.id === l.studentId);
+                if(!st) return;
+                let d = new Date(l.date);
+                let typeStr = l.type==='eval' ? (l.evalType==='new' ? '📖 حفظ جديد' : (l.evalType==='review' ? '🔄 مراجعة' : '🏆 سبر')) : '🎁 مكافأة';
+                let html = `<tr><td>${d.toLocaleDateString('ar-EG')}</td><td><b>${st.name}</b></td><td>${typeStr}</td><td>${l.type==='eval'?`من ص ${l.fromPage} إلى ص ${l.toPage}`:l.note}</td><td><b>${l.score || '-'}</b></td><td style="color:var(--success); font-weight:bold;">+${l.points}</td></tr>`;
+                
+                if(d >= oneWeek) { weekTbody.innerHTML += html; weekPointsMap[st.id] += l.points; }
+                if(d >= oneMonth) { monthTbody.innerHTML += html; monthPointsMap[st.id] += l.points; }
+            });
+
+            if(weekTbody.innerHTML==='') weekTbody.innerHTML=`<tr><td colspan="6" style="text-align:center; padding:15px;">لا سجلات مرصودة هذا الأسبوع.</td></tr>`;
+            if(monthTbody.innerHTML==='') monthTbody.innerHTML=`<tr><td colspan="6" style="text-align:center; padding:15px;">لا سجلات مرصودة هذا الشهر.</td></tr>`;
+
+            renderPodium(weekPointsMap, 'weekly-podium-list');
+            renderPodium(monthPointsMap, 'monthly-podium-list');
+        }
+
+        function renderPodium(pointsMap, elementId) {
+            const el = document.getElementById(elementId);
+            let sortable = [];
+            for (var sId in pointsMap) { sortable.push([sId, pointsMap[sId]]); }
+            sortable.sort((a, b) => b[1] - a[1]);
+
+            let top3 = sortable.filter(item => item[1] > 0).slice(0, 3);
+            if(top3.length === 0) { el.innerHTML = "لا يوجد فرسان صدارة متوجين حالياً لنقص النقاط الممنوحة 🌟"; return; }
+
+            el.innerHTML = '';
+            top3.forEach((item, index) => {
+                let st = t_students.find(s => s.id == item[0]);
+                if(st) el.innerHTML += `🏅 المركز [${index+1}] البطل: ${st.name} | حصد: <span class="badge badge-podium">${item[1]} ن</span> &nbsp;&nbsp;&nbsp;&nbsp;`;
+            });
+        }
+
+        document.getElementById('teacher-add-student-form').addEventListener('submit', function(e){
+            e.preventDefault();
+            const name = document.getElementById('t-student-name').value.trim();
+            const phone = document.getElementById('t-student-phone').value.trim();
+            const group = document.getElementById('t-student-group').value.trim();
+            t_students.push({ id: Date.now(), name, phone, group, points: 0 });
+            syncTeacherData(); renderTeacherApp(); this.reset();
+        });
+
+        function deleteTeacherStudent(id) { if(confirm('هل أنت متأكد من حذف هذا الطالب وكل سجلاته نهائياً من مجموعات الحلقة؟')) { t_students = t_students.filter(s=>s.id!==id); t_logs = t_logs.filter(l=>l.studentId!==id); syncTeacherData(); renderTeacherApp(); } }
+
+        function openTeacherModal(id) {
+            activeStudentId = id; const st = t_students.find(s=>s.id===id); if(!st) return;
+            document.getElementById('t-modal-title').innerText = `إدارة ملف ورصد: ${st.name}`;
+            document.getElementById('teacher-profile-modal').style.display = 'flex';
+            renderModalHistory(id);
+        }
+        function closeTeacherModal() { document.getElementById('teacher-profile-modal').style.display = 'none'; activeStudentId = null; }
+
+        function renderModalHistory(id) {
+            const tbody = document.getElementById('t-modal-history-tbody'); tbody.innerHTML = '';
+            t_logs.filter(l=>l.studentId===id).forEach(l => {
+                let det = l.type==='eval'? `تسميع ص ${l.fromPage}-${l.toPage}` : l.note;
+                tbody.innerHTML += `<tr><td>${det}</td><td>${l.score || '-'}</td><td>+${l.points}</td><td><button class="sm-btn sm-btn-del" onclick="deleteTeacherLog(${l.id}, ${l.points})">🗑️</button></td></tr>`;
+            });
+        }
+
+        function deleteTeacherLog(logId, pts) {
+            if(confirm('تأكيد: هل تود حذف هذا القيد التراكمي وتحديث رصيد الطالب بالخصم الآلي لعدم وجود أخطاء؟')) {
+                t_logs = t_logs.filter(l=>l.id!==logId);
+                let idx = t_students.findIndex(s=>s.id===activeStudentId);
+                if(idx!==-1) t_students[idx].points = Math.max(0, (t_students[idx].points||0) - pts);
+                syncTeacherData(); renderModalHistory(activeStudentId); renderTeacherApp();
+            }
+        }
+
+        document.getElementById('t-modal-eval-form').addEventListener('submit', function(e){
+            e.preventDefault();
+            const fromPage = parseInt(document.getElementById('t-eval-from').value);
+            const toPage = parseInt(document.getElementById('t-eval-to').value);
+            const evalType = document.getElementById('t-eval-type').value;
+            const isAuto = document.getElementById('t-eval-method-toggle').checked;
+            const note = document.getElementById('t-eval-note').value || 'لا يوجد ملاحظات';
+
+            if(toPage < fromPage) { alert('تنبيه: صفحة النهاية لا يمكن أن تكون أصغر من صفحة البداية!'); return; }
+
+            let score, points;
+            if(isAuto) {
+                let maxS = document.getElementById('t-eval-base-score').value;
+                let studS = document.getElementById('t-eval-score-auto').value;
+                score = `${studS} / ${maxS}`;
+                points = parseInt(document.getElementById('t-eval-points-auto').value) || 0;
+            } else {
+                let maxS = document.getElementById('t-eval-score-max-manual').value;
+                let studS = document.getElementById('t-eval-score-student-manual').value;
+                score = `${studS} / ${maxS}`;
+                points = parseInt(document.getElementById('t-eval-points-manual').value) || 0;
+            }
+
+            t_logs.push({ id: Date.now(), studentId: activeStudentId, type:'eval', evalType, date: new Date().toISOString(), fromPage, toPage, score, points, note });
+            let idx = t_students.findIndex(s=>s.id===activeStudentId); t_students[idx].points += points;
+            
+            syncTeacherData(); renderModalHistory(activeStudentId); renderTeacherApp(); this.reset();
+            document.getElementById('t-eval-method-toggle').checked = false; toggleEvalMethod();
+        });
+
+        document.getElementById('t-modal-reward-form').addEventListener('submit', function(e){
+            e.preventDefault();
+            const points = parseInt(document.getElementById('t-reward-points').value)||0;
+            const note = document.getElementById('t-reward-note').value;
+
+            t_logs.push({ id: Date.now(), studentId: activeStudentId, type:'reward', date: new Date().toISOString(), points, note });
+            let idx = t_students.findIndex(s=>s.id===activeStudentId); t_students[idx].points += points;
+            syncTeacherData(); renderModalHistory(activeStudentId); renderTeacherApp(); this.reset();
+        });
+
+
+        /* ======================== محرك وعمليات لوحة الطالب الحر ======================== */
+        function renderIndependentApp() {
+            const tbody = document.getElementById('ind-history-tbody');
+            tbody.innerHTML = '';
+            let totalPoints = 0;
+
+            let sortedIndLogs = [...ind_logs].sort((a,b) => b.id - a.id);
+            sortedIndLogs.forEach(l => {
+                let d = new Date(l.date).toLocaleDateString('ar-EG');
+                let countPages = Math.max(1, l.toPage - l.fromPage + 1);
+                let ptsEarned = countPages * 2; 
+                totalPoints += ptsEarned;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${d}</td>
+                        <td>📖 من ص <b>${l.fromPage}</b> إلى ص <b>${l.toPage}</b></td>
+                        <td>${countPages} صفحات</td>
+                        <td style="color:var(--success); font-weight:bold;">+${ptsEarned} ن</td>
+                        <td>${l.note || 'تسميع يومي ممتاز'}</td>
+                        <td><button class="sm-btn sm-btn-del" onclick="deleteIndependentLog(${l.id})">🗑️</button></td>
+                    </tr>`;
+            });
+
+            if(ind_logs.length===0) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--secondary); padding:15px;">سجل وردك فارغ، ابدأ الآن بتدوين أول إنجاز لك اليوم!</td></tr>`;
+            document.getElementById('ind-total-points-badge').innerText = `${totalPoints} نقطة`;
+        }
+
+        document.getElementById('ind-add-log-form').addEventListener('submit', function(e){
+            e.preventDefault();
+            const fromPage = parseInt(document.getElementById('ind-from').value);
+            const toPage = parseInt(document.getElementById('ind-to').value);
+            const note = document.getElementById('ind-note').value.trim();
+
+            if(toPage < fromPage) { alert('خطأ في إدخال الصفحات: صفحة النهاية يجب أن تكون أكبر من أو تساوي صفحة البداية!'); return; }
+
+            ind_logs.push({ id: Date.now(), date: new Date().toISOString(), fromPage, toPage, note });
+            syncIndependentData(); renderIndependentApp(); this.reset();
+        });
+
+        function deleteIndependentLog(id) { if(confirm('تأكيد حذف هذا اليوم وقيد التسميع من مفكرتك الخاصة؟')) { ind_logs = ind_logs.filter(l=>l.id!==id); syncIndependentData(); renderIndependentApp(); } }
+
+        function switchTeacherTab(tabId, btn) {
+            document.querySelectorAll('#t-all-tab, #t-week-tab, #t-month-tab').forEach(p=>p.classList.remove('active'));
+            document.querySelectorAll('#section-teacher .tab-buttons .tab-btn').forEach(b=>b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active'); btn.classList.add('active');
+        }
+        function switchModalTab(tabId, btn) {
+            document.querySelectorAll('#m-tab-eval, #m-tab-reward, #m-tab-history').forEach(p=>p.classList.remove('active'));
+            document.querySelectorAll('.modal-content .tab-buttons .tab-btn').forEach(b=>b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active'); btn.classList.add('active');
+        }
+
+        /* ======================== محرك تشغيل وتثبيت الـ PWA الفوري ======================== */
+        let deferredPrompt;
+        const installBanner = document.getElementById('install-banner');
+        const installBtn = document.getElementById('btn-pwa-install');
+        const dismissBtn = document.getElementById('btn-pwa-dismiss');
+
+        function showInstallBanner() {
+            installBanner.classList.add('show');
+            document.body.classList.add('has-install-banner');
+        }
+        function hideInstallBanner() {
+            installBanner.classList.remove('show');
+            document.body.classList.remove('has-install-banner');
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // ما نظهر الشريط إذا المستخدم سكّره بنفسه قبل هيك بهاي الجلسة
+            if (!sessionStorage.getItem('installBannerDismissed')) {
+                showInstallBanner();
+            }
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    hideInstallBanner();
+                }
+                deferredPrompt = null;
+            }
+        });
+
+        dismissBtn.addEventListener('click', () => {
+            hideInstallBanner();
+            sessionStorage.setItem('installBannerDismissed', '1');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            hideInstallBanner();
+        });
+
+        // إذا التطبيق متثبت أصلاً ومفتوح بنمط standalone، ما تظهرش الشريط أبداً
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            hideInstallBanner();
+        }
+
+        // تسجيل Service Worker — مطلوب من المتصفحات لتفعيل ميزة التثبيت
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(() => console.log('Service worker registered'))
+                    .catch((err) => console.error('Service worker registration failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>
